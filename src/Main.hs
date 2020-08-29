@@ -7,9 +7,6 @@ import qualified Data.Map as Map
 import Control.Concurrent
 import Control.Exception
 
-import qualified Network.WebSockets as WS
-import qualified Network.WebSockets.Snap as WS
-import qualified Snap.Http.Server as Snap
 import qualified Data.Aeson as JS
 import Data.Aeson(object,(.=))
 
@@ -18,26 +15,21 @@ import Puzzle
 import V2
 
 main :: IO ()
-main =
-  do s <- newGUI
-     Snap.quickHttpServe (WS.runWebSocketsSnap (server s))
-
-server :: GUI -> WS.ServerApp
-server srv pending =
-  do conn <- WS.acceptRequest pending
-     print "Accepted"
-     WS.withPingThread conn 30 (pure ())
-       do jsPiece conn Piece { pId = 1
-                             , pOrigin = V2 50 100
-                             , pRotate = pi/3
-                             , pEmpty = Map.empty
-                             }
+main = newGUI \ev ->
+  case ev of
+    Connected cid ->
+      do broadcast jsNewObject "Hello" ()
+         broadcast jsSetSize "Hello" (64,128)
+         broadcast jsSetBackgroundColor "Hello" "blue"
+         cs <- getClients
+         broadcast jsSetPosition "Hello" (fromIntegral (length cs) * 100, 0, 0)
+         broadcast jsSetVisible "Hello" True
 
 
 
 -------------------------------------------------------------------------------
 
-
+{-
 jsPiece :: WS.Connection -> Piece -> IO ()
 jsPiece conn p =
   do let guid = Text.pack ("piece-" ++ show (pId p))
@@ -52,5 +44,5 @@ jsPiece conn p =
 
 toDeg :: Radians -> Float
 toDeg x = 180 * x / pi
-
+-}
 --------------------------------------------------------------------------------
