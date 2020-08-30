@@ -15,7 +15,7 @@ import Puzzle
 import V2
 
 main :: IO ()
-main = newGUI \ev ->
+main = newGUI puzzle \ev ->
   case ev of
     Connected cid ->
       do broadcast jsNewObject "Hello" ()
@@ -26,6 +26,19 @@ main = newGUI \ev ->
          broadcast jsSetVisible "Hello" True
     Disconnected cid ->
       io $ print ev
+
+puzzle :: Puzzle
+puzzle = Puzzle
+  { pieceRoots  = Map.singleton 0 p0
+  , pieceOwner  = Map.empty
+  , pieceColors = Map.singleton 0 "red"
+  }
+  where
+  p0 = Piece { pOrigin = V2 20 50
+             , pRotate = pi / 3
+             , pEmpty  = Map.empty
+             , pOwn    = []
+             }
 
 
 

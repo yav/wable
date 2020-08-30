@@ -15,8 +15,7 @@ data Puzzle = Puzzle
   }
 
 data Piece = Piece
-  { pId         :: Id
-  , pOrigin     :: V2
+  { pOrigin     :: V2
   , pRotate     :: Radians
 
     -- Neighbours are relative to our coordinate system

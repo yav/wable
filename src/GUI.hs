@@ -15,15 +15,16 @@ import Data.Aeson(FromJSON,ToJSON,(.=))
 import qualified Data.Aeson as JS
 import qualified Snap.Http.Server as Snap
 
-type GUI            = IORef GUIState
+type GUI s          = IORef (GUIState s)
 type ClientId       = Int
-data GUIState       = GUIState { nextClient :: !ClientId
+data GUIState s     = GUIState { nextClient :: !ClientId
                                , clinets    :: !(Map ClientId Connection)
+                               , state      :: !s
                                }
 
-newGUI :: (Event -> GUIAction ()) -> IO ()
-newGUI app =
-  do gui <- newIORef GUIState { nextClient = 0, clinets = Map.empty }
+newGUI :: s -> (Event -> GUIAction s ()) -> IO ()
+newGUI s app =
+  do gui <- newIORef GUIState { nextClient = 0, clinets = Map.empty, state = s }
      Snap.quickHttpServe $ WS.runWebSocketsSnap \pending ->
        do conn <- WS.acceptRequest pending
           print "Accepted"
@@ -36,15 +37,16 @@ newGUI app =
                                      _ -> do removeClient gui cid
                                              event (Disconnected cid)
 
-addClient :: GUI -> Connection -> IO ClientId
+addClient :: GUI s -> Connection -> IO ClientId
 addClient ref conn = atomicModifyIORef' ref \GUIState { .. } ->
   ( GUIState { nextClient = nextClient + 1
              , clinets    = Map.insert nextClient conn clinets
+             , ..
              }
   , nextClient
   )
 
-removeClient :: GUI -> ClientId -> IO ()
+removeClient :: GUI s -> ClientId -> IO ()
 removeClient ref cid = modifyIORef' ref \GUIState { .. } ->
   GUIState { clinets = Map.delete cid clinets, .. }
 -- XXX: Client state?
@@ -60,34 +62,34 @@ instance FromJSON Event where
 
 
 --------------------------------------------------------------------------------
-newtype GUIAction a = GUIAction (GUI -> IO a)
+newtype GUIAction s a = GUIAction (GUI s -> IO a)
 
-instance Functor GUIAction where
+instance Functor (GUIAction s) where
   fmap = liftM
 
-instance Applicative GUIAction where
+instance Applicative (GUIAction s) where
   pure a = GUIAction \_ -> pure a
   (<*>)  = ap
 
-instance Monad GUIAction where
+instance Monad (GUIAction s) where
   GUIAction m >>= f = GUIAction \r -> m r >>= \a ->
                                       let GUIAction m1 = f a in m1 r
 
-doAction :: GUI -> GUIAction a -> IO a
+doAction :: GUI s -> GUIAction s a -> IO a
 doAction ref (GUIAction a) = a ref
 
-getClients :: GUIAction [ClientId]
+getClients :: GUIAction s [ClientId]
 getClients = GUIAction \ref ->
   do GUIState { clinets } <- readIORef ref
      pure (Map.keys clinets)
 
-broadcast :: Command a -> ObjectId -> a -> GUIAction ()
+broadcast :: Command a -> ObjectId -> a -> GUIAction s ()
 broadcast f oid a =
   GUIAction \ref ->
     do GUIState { clinets } <- readIORef ref
        mapM_ (\c -> doCommand f c oid a) (Map.elems clinets)
 
-io :: IO a -> GUIAction a
+io :: IO a -> GUIAction s a
 io m = GUIAction \_ -> m
 
 --------------------------------------------------------------------------------
