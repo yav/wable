@@ -32,7 +32,9 @@ newGUI app =
           WS.withPingThread conn 30 (pure ())
             do event (Connected cid)
                let loop = recvJS conn \ev -> event ev >> loop
-               loop
+               loop `catch` \ex -> case ex :: WS.ConnectionException of
+                                     _ -> do removeClient gui cid
+                                             event (Disconnected cid)
 
 addClient :: GUI -> Connection -> IO ClientId
 addClient ref conn = atomicModifyIORef' ref \GUIState { .. } ->

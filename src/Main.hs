@@ -24,6 +24,8 @@ main = newGUI \ev ->
          cs <- getClients
          broadcast jsSetPosition "Hello" (fromIntegral (length cs) * 100, 0, 0)
          broadcast jsSetVisible "Hello" True
+    Disconnected cid ->
+      io $ print ev
 
 
 
