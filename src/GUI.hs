@@ -83,6 +83,9 @@ getClients = GUIAction \ref ->
   do GUIState { clinets } <- readIORef ref
      pure (Map.keys clinets)
 
+getState :: GUIAction s s
+getState = GUIAction \ref -> state <$> readIORef ref
+
 broadcast :: Command a -> ObjectId -> a -> GUIAction s ()
 broadcast f oid a =
   GUIAction \ref ->
