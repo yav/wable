@@ -21,6 +21,8 @@ main = newGUI puzzle \ev ->
     Connected cid -> jsRootPiece 0
     Disconnected cid ->
       io $ print ev
+    Click {} ->
+      io $ print ev
 
 puzzle :: Puzzle
 puzzle = Puzzle
@@ -61,6 +63,7 @@ jsPiece coord pid =
      let V2 x y = cOrigin coord
      jsSetPosition `app` (x,y,0)
      jsSetRotation `app` toDeg (cRotate coord)
+     jsSetClickable `app` ()
      jsSetVisible `app` True
 
 toDeg :: Radians -> Float

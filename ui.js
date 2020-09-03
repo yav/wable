@@ -126,7 +126,12 @@ function setClipPath(id, path) {
 
 
 // -----------------------------------------------------------------------------
-// XXX these will change
+
+function setClickable(id,ws) {
+  getObject(id).dom.addEventListener("click",
+    function() { ws.send(JSON.stringify({id:id,event:'click'})) }
+  )
+}
 
 function setOnClickLocal(id,fun) {
   getObject(id).dom.addEventListener("click",fun)

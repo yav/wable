@@ -5,7 +5,7 @@ function srvConnect(url) {
     console.log("Connected.")
   }
 
-  ws.onmessage = handleMessage
+  ws.onmessage = handleMessage(ws)
 
   ws.onclose = function(e) {
     console.log("Disconnected.")
@@ -25,9 +25,10 @@ var api = { newObject:          [ newObject, 1 ]
           , setBackgroundColor: [ setBackgroundColor, 2 ]
           , setBackground:      [ setBackground, 2 ]
           , setVisible:         [ setVisible, 2 ]
+          , setClickable:       [ setClickable, 10 ]
           }
 
-function handleMessage(ev) {
+function handleMessage(ws) { return function (ev) {
   let msg = JSON.parse(ev.data)
   console.log(msg)
   let entry = api[msg[0]]
@@ -39,7 +40,8 @@ function handleMessage(ev) {
     case 1: return fun(msg[1])
     case 2: let args = msg[1]
             return fun(args[0],args[1])
+    case 10: return fun(msg[1],ws)
   }
-}
+}}
 
 

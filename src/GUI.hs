@@ -1,17 +1,18 @@
 {-# Language OverloadedStrings, BlockArguments, RecordWildCards,
-             NamedFieldPuns #-}
+             NamedFieldPuns, FlexibleContexts, FlexibleInstances #-}
 module GUI where
 
 import Data.Map(Map)
 import qualified Data.Map as Map
 import Data.Text(Text)
+import qualified Data.Text as Text
 import Data.IORef(IORef,newIORef,readIORef,modifyIORef',atomicModifyIORef')
 import Control.Exception(SomeException(..),catch)
-import Control.Monad(liftM,ap)
+import Control.Monad(liftM,ap,msum)
 import Network.WebSockets(Connection,sendTextData,receiveData)
 import qualified Network.WebSockets as WS
 import qualified Network.WebSockets.Snap as WS
-import Data.Aeson(FromJSON,ToJSON,(.=))
+import Data.Aeson(FromJSON,ToJSON,(.=),(.:))
 import qualified Data.Aeson as JS
 import qualified Snap.Http.Server as Snap
 
@@ -32,7 +33,7 @@ newGUI s app =
           let event ev = doAction gui (app ev)
           WS.withPingThread conn 30 (pure ())
             do event (Connected cid)
-               let loop = recvJS conn \ev -> event ev >> loop
+               let loop = recvJS cid conn \ev -> event ev >> loop
                loop `catch` \ex -> case ex :: WS.ConnectionException of
                                      _ -> do removeClient gui cid
                                              event (Disconnected cid)
@@ -55,10 +56,21 @@ removeClient ref cid = modifyIORef' ref \GUIState { .. } ->
 
 data Event = Connected ClientId
            | Disconnected ClientId
+           | Click ClientId ObjectId
              deriving Show
 
-instance FromJSON Event where
-  parseJSON _ = fail "Unknown eevent"
+instance FromJSON (ClientId -> Event) where
+  parseJSON = JS.withObject "event" \o ->
+    do ev <- o .: "event"
+       case Map.lookup ev evMap of
+         Just f -> f o
+         _ -> fail ("Unknown event: " ++ Text.unpack ev)
+
+    where
+    evMap = Map.fromList
+      [ ("click", \o -> do i <- o .: "id"
+                           pure \cid -> Click cid i)
+      ]
 
 
 --------------------------------------------------------------------------------
@@ -129,16 +141,19 @@ jsSetBackground conn i c = jsCall conn "setBackground" (i,c)
 jsSetVisible :: Command Bool
 jsSetVisible conn i b = jsCall conn "setVisible" (i,b)
 
+jsSetClickable :: Command ()
+jsSetClickable conn i x = jsCall conn "setClickable" i
+
 
 --------------------------------------------------------------------------------
 sendJS :: ToJSON a => Connection -> a -> IO ()
 sendJS conn msg = sendTextData conn (JS.encode msg)
 
-recvJS :: FromJSON a => Connection -> (a -> IO ()) -> IO ()
-recvJS conn k =
+recvJS :: ClientId -> Connection -> (Event  -> IO ()) -> IO ()
+recvJS cid conn k =
   do bs <- receiveData conn
      case JS.decode bs of
-       Just a  -> k a
+       Just a  -> k (a cid)
        Nothing -> print bs -- XXX: logging
 
 jsCall :: ToJSON a => Connection -> Text -> a -> IO ()
