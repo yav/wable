@@ -56,7 +56,7 @@ removeClient ref cid = modifyIORef' ref \GUIState { .. } ->
 
 data Event = Connected ClientId
            | Disconnected ClientId
-           | Click ClientId ObjectId
+           | Click ClientId ObjectId V2
              deriving Show
 
 instance FromJSON (ClientId -> Event) where
@@ -69,7 +69,9 @@ instance FromJSON (ClientId -> Event) where
     where
     evMap = Map.fromList
       [ ("click", \o -> do i <- o .: "id"
-                           pure \cid -> Click cid i)
+                           x <- o .: "x"
+                           x <- o .: "y"
+                           pure \cid -> Click cid i (V2 x y))
       ]
 
 
@@ -143,6 +145,7 @@ jsSetVisible conn i b = jsCall conn "setVisible" (i,b)
 
 jsSetClickable :: Command ()
 jsSetClickable conn i x = jsCall conn "setClickable" i
+
 
 
 --------------------------------------------------------------------------------

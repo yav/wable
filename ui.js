@@ -127,9 +127,13 @@ function setClipPath(id, path) {
 
 // -----------------------------------------------------------------------------
 
+
+// The x y are relative to the bounding rectangle of the object which
+// is not terribly useful, but it matters for body
 function setClickable(id,ws) {
   getObject(id).dom.addEventListener("click",
-    function() { ws.send(JSON.stringify({id:id,event:'click'})) }
+    function(ev) { ws.send(JSON.stringify({id:id,event:'click',
+                                          x: ev.clientX, y: ev.clientY})) }
   )
 }
 
