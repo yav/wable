@@ -19,7 +19,9 @@ executable wable
   other-modules:
     GUI,
     V2,
+    Coord,
     Puzzle,
+    AppState,
     BasicActions
   -- other-extensions:
   build-depends:

@@ -16,6 +16,8 @@ import Data.Aeson(FromJSON,ToJSON,(.=),(.:))
 import qualified Data.Aeson as JS
 import qualified Snap.Http.Server as Snap
 
+import V2
+
 type GUI s          = IORef (GUIState s)
 type ClientId       = Int
 data GUIState s     = GUIState { nextClient :: !ClientId
@@ -70,7 +72,7 @@ instance FromJSON (ClientId -> Event) where
     evMap = Map.fromList
       [ ("click", \o -> do i <- o .: "id"
                            x <- o .: "x"
-                           x <- o .: "y"
+                           y <- o .: "y"
                            pure \cid -> Click cid i (V2 x y))
       ]
 
@@ -99,6 +101,10 @@ getClients = GUIAction \ref ->
 
 getState :: GUIAction s s
 getState = GUIAction \ref -> state <$> readIORef ref
+
+updateState :: (s -> s) -> GUIAction s ()
+updateState f = GUIAction \ref -> modifyIORef' ref \s ->
+                                                    s { state = f (state s) }
 
 broadcast :: Command a -> ObjectId -> a -> GUIAction s ()
 broadcast f oid a =
@@ -146,6 +152,8 @@ jsSetVisible conn i b = jsCall conn "setVisible" (i,b)
 jsSetClickable :: Command ()
 jsSetClickable conn i x = jsCall conn "setClickable" i
 
+jsSetClipPath :: Command Text
+jsSetClipPath conn i b = jsCall conn "setClipPath" (i,b)
 
 
 --------------------------------------------------------------------------------

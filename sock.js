@@ -25,6 +25,7 @@ var api = { newObject:          [ newObject, 1 ]
           , setBackgroundColor: [ setBackgroundColor, 2 ]
           , setBackground:      [ setBackground, 2 ]
           , setVisible:         [ setVisible, 2 ]
+          , setClipPath:        [ setClipPath, 2 ]
           , setClickable:       [ setClickable, 10 ]
           }
 
